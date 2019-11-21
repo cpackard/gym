@@ -355,7 +355,7 @@ def _worker(index, env_fn, pipe, parent_pipe, shared_memory, error_queue):
             elif command == '_check_observation_space':
                 pipe.send((data == env.observation_space, True))
             else:
-                raise RuntimeError('Received unknown command `{0}`. Must '
+                raise RuntimeError('Received unknown command `{0}`. Must '  # type: ignore
                     'be one of {`reset`, `step`, `seed`, `close`, '
                     '`_check_observation_space`}.'.format(command))
     except (KeyboardInterrupt, Exception):
@@ -394,7 +394,7 @@ def _worker_shared_memory(index, env_fn, pipe, parent_pipe, shared_memory, error
             elif command == '_check_observation_space':
                 pipe.send((data == observation_space, True))
             else:
-                raise RuntimeError('Received unknown command `{0}`. Must '
+                raise RuntimeError('Received unknown command `{0}`. Must '  # type: ignore
                     'be one of {`reset`, `step`, `seed`, `close`, '
                     '`_check_observation_space`}.'.format(command))
     except (KeyboardInterrupt, Exception):
