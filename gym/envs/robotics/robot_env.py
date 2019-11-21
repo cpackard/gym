@@ -1,25 +1,25 @@
 import os
-import copy
+from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 import gym
-from gym import error, spaces
+from gym import spaces
 from gym.utils import seeding
 
-try:
-    import mujoco_py
-except ImportError as e:
-    raise error.DependencyNotInstalled(
-        "{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(
-            e
-        )
-    )
+from .simulator import Simulator
 
 DEFAULT_SIZE = 500
 
 
 class RobotEnv(gym.GoalEnv):
-    def __init__(self, model_path, initial_qpos, n_actions, n_substeps):
+    def __init__(
+        self,
+        model_path: str,
+        initial_qpos: Dict[str, Union[int, List[int]]],
+        n_actions: int,
+        n_substeps: int,
+        sim: Optional[Simulator] = None,
+    ):
         if model_path.startswith("/"):
             fullpath = model_path
         else:
@@ -27,10 +27,17 @@ class RobotEnv(gym.GoalEnv):
         if not os.path.exists(fullpath):
             raise IOError("File {} does not exist".format(fullpath))
 
-        model = mujoco_py.load_model_from_path(fullpath)
-        self.sim = mujoco_py.MjSim(model, nsubsteps=n_substeps)
+        self.model_path = fullpath
+
+        if sim is None:
+            sim = Simulator()
+        self.sim = sim
+
+        object_ids = self.sim.load_environment(fullpath)
+        self.sim.set_num_substeps(n_substeps)
+
         self.viewer = None
-        self._viewers = {}
+        self._viewers: Dict[str, Any] = {}
 
         self.metadata = {
             "render.modes": ["human", "rgb_array"],
@@ -38,13 +45,15 @@ class RobotEnv(gym.GoalEnv):
         }
 
         self.seed()
+        self.joint_info = self.sim.get_initial_joint_info(object_ids)
+        self.body_info = self.sim.get_initial_body_info(object_ids)
         self._env_setup(initial_qpos=initial_qpos)
-        self.initial_state = copy.deepcopy(self.sim.get_state())
+        self.initial_state_id = self.sim.save_state()
 
         self.goal = self._sample_goal()
         obs = self._get_obs()
-        self.action_space = spaces.Box(-1.0, 1.0, shape=(n_actions,), dtype="float32")
-        self.observation_space = spaces.Dict(
+        self.action_space: spaces.Box = spaces.Box(-1.0, 1.0, shape=(n_actions,), dtype="float32")  # type: ignore
+        self.observation_space = spaces.Dict(  # type: ignore
             dict(
                 desired_goal=spaces.Box(-np.inf, np.inf, shape=obs["achieved_goal"].shape, dtype="float32"),
                 achieved_goal=spaces.Box(-np.inf, np.inf, shape=obs["achieved_goal"].shape, dtype="float32"),
@@ -52,9 +61,12 @@ class RobotEnv(gym.GoalEnv):
             )
         )
 
+    def __del__(self):
+        self.sim.disconnect()
+
     @property
     def dt(self):
-        return self.sim.model.opt.timestep * self.sim.nsubsteps
+        return self.sim.timestep * self.sim.n_substeps
 
     # Env methods
     # ----------------------------
@@ -63,10 +75,10 @@ class RobotEnv(gym.GoalEnv):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action):
-        action = np.clip(action, self.action_space.low, self.action_space.high)
-        self._set_action(action)
-        self.sim.step()
+    def step(self, action: Any) -> Tuple[Dict, float, bool, Dict[str, "np.float32"]]:
+        joints, positions = action["joints"], np.array(action["positions"])
+        self._set_action(joints, positions)
+        self.sim.step_simulation()
         self._step_callback()
         obs = self._get_obs()
 
@@ -97,39 +109,29 @@ class RobotEnv(gym.GoalEnv):
             self.viewer = None
             self._viewers = {}
 
-    def render(self, mode="human", width=DEFAULT_SIZE, height=DEFAULT_SIZE):
+    def render(self, mode="human", width=DEFAULT_SIZE, height=DEFAULT_SIZE) -> Tuple:
         self._render_callback()
         if mode == "rgb_array":
-            self._get_viewer(mode).render(width, height)
-            # window size used for old mujoco-py:
-            data = self._get_viewer(mode).read_pixels(width, height, depth=False)
-            # original image is upside-down, so flip it
-            return data[::-1, :, :]
+            return self.sim.get_camera_image(width=width, height=height)
         elif mode == "human":
-            self._get_viewer(mode).render()
+            self.sim.reset_debug_cam()
+            return self.sim.get_debug_cam()
+
+        return tuple()
 
     def _get_viewer(self, mode):
-        self.viewer = self._viewers.get(mode)
-        if self.viewer is None:
-            if mode == "human":
-                self.viewer = mujoco_py.MjViewer(self.sim)
-            elif mode == "rgb_array":
-                self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, device_id=-1)
-            self._viewer_setup()
-            self._viewers[mode] = self.viewer
-        return self.viewer
+        pass
 
     # Extension methods
     # ----------------------------
 
-    def _reset_sim(self):
+    def _reset_sim(self) -> bool:
         """Resets a simulation and indicates whether or not it was successful.
         If a reset was unsuccessful (e.g. if a randomized state caused an error in the
         simulation), this method should indicate such a failure by returning False.
         In such a case, this method will be called again to attempt a the reset again.
         """
-        self.sim.set_state(self.initial_state)
-        self.sim.forward()
+        self.sim.reset_state(self.model_path)
         return True
 
     def _get_obs(self):
@@ -137,7 +139,7 @@ class RobotEnv(gym.GoalEnv):
         """
         raise NotImplementedError()
 
-    def _set_action(self, action):
+    def _set_action(self, joints: List[str], positions: "np.ndarray") -> None:
         """Applies the given action to the simulation.
         """
         raise NotImplementedError()

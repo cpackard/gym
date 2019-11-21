@@ -40,8 +40,9 @@ class Simulator:
         state_id = pb.saveState(physicsClientId=self.client_id)
         return state_id
 
-    def restore_state(self, state_id: int) -> None:
-        pb.restoreState(stateId=state_id, physicsClientId=self.client_id)
+    def reset_state(self, model_path: str) -> List[int]:
+        pb.resetSimulation(physicsClientId=self.client_id)
+        return self.load_environment(model_path)
 
     def get_num_substeps(self) -> int:
         if self.n_substeps is None:
