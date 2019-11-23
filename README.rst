@@ -1,4 +1,68 @@
-**Status:** Maintenance (expect bug fixes and minor updates)
+PyBullet Fetch Robotics
+***********************
+
+This is a port of the OpenAI Fetch robotics environment from the proprietary MuJoCo physics engine to the open source PyBullet engine. To see the changes you can look at the updated `fetch <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/fetch_env.py>`_ and `robot <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/robot_env.py>`_ environments along with the new `simulator <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/simulator.py>`_.
+
+Core functionality of the robot including environment rendering, action, and observation are working. Actions are currently sent as position control but torque control is possible in the future. Robot can be run in either headless or GUI mode and supports all Fetch environments. To load an example and start trying it out, install the repo and dependencies with:
+
+.. code:: shell
+
+    git clone https://github.com/cpackard/gym.git
+    cd gym
+    pip install -e '.[pybullet]'
+    
+then run the following in a python script
+
+.. code:: python
+
+    from gym.envs.robotics.fetch import push
+    env = push.FetchPushEnv()
+    
+and you'll see an example robot & environment render in a new window.
+
+While most aspects of the environment will run correctly, there are some known limitations that can be improved in future updates:
+
+- Both a human and RGB camera are available but work is needed to make them more flexible. 
+- Environment generally runs correctly but some forceful actions will cause the robot to break down - not all constraints are loading correctly and will need further adjustments. 
+- The target body is unable to be fixed for now so the target position must be on the table.
+
+Running and Testing
+===================
+Integration Test / Example
+--------------------------
+To run the integration test and see a demo of the fetch robot, install pytest with ``pip install pytest`` and run
+
+.. code:: shell
+
+    pytest tests/gym/envs/robotics/fetch/integration
+
+Only the FetchPush environment is able to render at the moment due to limitations with PyBullet parsing <include> tags in MuJoCo XML files.
+
+Unit Tests
+----------
+Unit tests can be run by installing the dependencies:
+
+.. code:: shell
+
+    pip install pytest==5.3.0 hypothesis==4.45.1
+    
+then running
+
+.. code:: shell
+
+    pytest tests/gym/envs/robotics/fetch/unit
+
+Type Checking
+-------------
+Type checking can be performed by installing mypy ``pip install mypy==0.740`` and running
+
+.. code:: shell
+
+    mypy gym/envs/robotics/ --ignore-missing-imports
+
+Imports are ignored due to missing type stubs from dependencies.
+
+
 
 OpenAI Gym
 **********

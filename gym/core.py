@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import gym
 from gym import error
 from gym.utils import closer
@@ -31,7 +33,7 @@ class Env(object):
     functionality over time.
     """
     # Set this in SOME subclasses
-    metadata = {'render.modes': []}
+    metadata: Dict[str, Any] = {'render.modes': []}
     reward_range = (-float('inf'), float('inf'))
     spec = None
 

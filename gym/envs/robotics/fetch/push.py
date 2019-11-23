@@ -1,20 +1,17 @@
 import os
+from typing import Dict, List, Union
 from gym import utils
 from gym.envs.robotics import fetch_env
 
+from ..types import PositionVector
 
 # Ensure we get the path separator correct on windows
-MODEL_XML_PATH = os.path.join("fetch", "push.xml")
+MODEL_XML_PATH = os.path.join("fetch", "push_full_pybullet.xml")
 
 
 class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
-    def __init__(self, reward_type="sparse"):
-        initial_qpos = {
-            "robot0:slide0": 0.405,
-            "robot0:slide1": 0.48,
-            "robot0:slide2": 0.0,
-            "object0:joint": [1.25, 0.53, 0.4, 1.0, 0.0, 0.0, 0.0],
-        }
+    def __init__(self, reward_type: str = "sparse", goal: PositionVector = None):
+        initial_qpos: Dict[str, Union[float, List[float]]] = {}
         fetch_env.FetchEnv.__init__(
             self,
             MODEL_XML_PATH,
@@ -29,5 +26,6 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
             distance_threshold=0.05,
             initial_qpos=initial_qpos,
             reward_type=reward_type,
+            goal=goal,
         )
         utils.EzPickle.__init__(self)

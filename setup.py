@@ -12,6 +12,7 @@ extras = {
   'classic_control': [],
   'mujoco': ['mujoco_py>=1.50, <2.0', 'imageio'],
   'robotics': ['mujoco_py>=1.50, <2.0', 'imageio'],
+  'pybullet': ['pybullet>=2.5.7', 'tensorflow'],
 }
 
 # Meta dependency groups.
