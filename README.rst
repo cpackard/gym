@@ -1,6 +1,8 @@
 PyBullet Fetch Robotics
 ***********************
 
+.. image:: https://i.imgur.com/KSg2Rnh.gif
+
 This is a port of the OpenAI Fetch robotics environment from the proprietary MuJoCo physics engine to the open source PyBullet engine. To see the changes you can look at the updated `fetch <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/fetch_env.py>`_ and `robot <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/robot_env.py>`_ environments along with the new `simulator <https://github.com/cpackard/gym/tree/master/gym/envs/robotics/simulator.py>`_. PR with all changes can be found `here <https://github.com/cpackard/gym/pull/1>`_.
 
 Core functionality of the robot including environment rendering, action, and observation are working. Actions are currently sent as position control but torque control is possible in the future. Robot can be run in either headless or GUI mode and supports all Fetch environments. To load an example and start trying it out, install the repo and dependencies with:
